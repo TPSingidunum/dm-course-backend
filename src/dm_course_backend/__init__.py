@@ -11,7 +11,7 @@ def health():
 
 def main() -> None:
     uvicorn.run(
-        "main:app",
+        "dm_course_backend:app",
         host="127.0.0.1",
         port=3001,
         reload=True
