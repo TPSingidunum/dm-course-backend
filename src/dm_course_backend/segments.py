@@ -1,4 +1,6 @@
 import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
 # Segments - each segment represents a user group
@@ -43,14 +45,36 @@ def build_features(events: pd.DataFrame, orders: pd.DataFrame, now) -> pd.DataFr
     return df[FEATURES]
 
 
+# 2. Scale the values proportionally
 def scale(features: pd.DataFrame):
     scaler = StandardScaler().fit(features[FEATURES])
     return scaler.transform(features[FEATURES]), scaler
 
-
-
-# 2. Scale the values proportionally
-
 # 3. K-means (how many groups do we want to have n = 4)
+def train_kmeans(X, k: int = 4):
+    model = KMeans(n_clusters=k, random_state=42, n_init=10).fit(X)
+    score = silhouette_score(X, model.labels_)
+    return model, round(float(score), 4)
 
 # 4. Label each group by their defining caracteristic
+
+def summarize(features: pd.DataFrame, labels) -> list[dict]:
+    df = features.assign(segment=[ f"label{label}" for label in labels])
+    table = df.groupby("segment")[FEATURES].mean().round(4)
+    table.insert(0, "count", df["segment"].value_counts())
+    table.insert(1, "share", (table["count"] / len(df)).round(4))
+    overall = features.mean()
+    table["profile"] = [describe(row, overall) for _, row in table.iterrows()]
+
+    return table.reset_index().to_dict("records")
+
+
+def describe(segment: pd.Series, overall: pd.Series) -> str:
+    tags = []
+    for col in FEATURES:
+        if segment[col] > 1.25 * overall[col]:
+            tags.append(f"{col}+")
+        elif segment[col] < 0.75 * overall[col]:
+            tags.append(f"{col}-")
+
+    return " ".join(tags) or "average"
