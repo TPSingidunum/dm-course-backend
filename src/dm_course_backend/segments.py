@@ -1,4 +1,5 @@
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 # Segments - each segment represents a user group
 # Rich customers, WindowShoppers, etc.  
@@ -29,6 +30,22 @@ def visit_summary(events: pd.DataFrame) -> pd.DataFrame:
         "buying_sessions": purchases.groupby("user_id")["user_session"].nunique(),
         "last_seen" : per_customer["timestamp"].max()
     })
+
+def build_features(events: pd.DataFrame, orders: pd.DataFrame, now) -> pd.DataFrame:
+    df = visit_summary(events).join(purchase_summary(orders), how="outer")
+    df = df.fillna({"frequency": 0, "monetary": 0, "bying_sessions": 0})
+    last_activity = df["last_purchase"].fillna(df["last_seen"])
+    df["recency_days"] = (now - last_activity).dt.days
+    df["monetary"] = df["monetary"].round(2)
+    df["aov"] = (df["monetary"] / df["frequency"]).fillna(0).round(2)
+    df["conversion"] = (df["buying_sessions"] / df["sessions"]).fillna(0).round(4)
+    
+    return df[FEATURES]
+
+
+def scale(features: pd.DataFrame):
+    scaler = StandardScaler().fit(features[FEATURES])
+    return scaler.transform(features[FEATURES]), scaler
 
 
 
