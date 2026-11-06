@@ -1,7 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import uvicorn
-from dm_course_backend.services import train
+from dm_course_backend.services import train, load
 
 app = FastAPI(title="DM Backend")
 
@@ -16,8 +16,25 @@ class TrainRequest(BaseModel):
 
 @app.post("/segments/train")
 def train_segments(body: TrainRequest = TrainRequest()):
-    print(body.k)
     return train(body.k)
+
+
+@app.get("/segments")
+def get_segments():
+    saved_weights = load()
+    if saved_weights is None:
+        raise HTTPException(503, "untrained_model") # Error Codes, HTTP 402 Bad Request, ErrorCode 102 # 1 is Kmeans error, and 2 is not trianed
+    return saved_weights["summary"]
+
+@app.get("/customers/{user_id}/segment")
+def get_customer_segment(user_id: int):
+    saved_weights = load()
+    if saved_weights is None:
+        raise HTTPException(503, "untrained_model")
+    return {
+        "user_id": user_id,
+        "segment": saved_weights["assignments"].get(user_id, "unsegmented")
+    } 
 
 def main() -> None:
     uvicorn.run(

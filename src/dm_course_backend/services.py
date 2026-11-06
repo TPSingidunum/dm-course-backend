@@ -22,8 +22,14 @@ def train(k: int=4) -> dict:
         "segments": summarize(features, model.labels_)
     }
 
+    # Here we will include LLMs to read and process the segments, and appropriately name them
+    # Will label the data with User friendly names
+
     assignments = {int(uid): f"segment_{label}" for uid, label in zip(features.index, model.labels_)}
     MODEL_DIR.mkdir(exist_ok=True)
     joblib.dump({"model": model, "scaler": scaler, "summary": summary, "assignments": assignments}, MODEL_DIR / "weights.joblib" )
     print(summary)
     return summary
+
+def load() -> dict | None:
+    return joblib.load(MODEL_DIR/"weights.joblib") if (MODEL_DIR / "weights.joblib").exists() else None
