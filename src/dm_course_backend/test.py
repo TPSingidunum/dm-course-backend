@@ -1,6 +1,6 @@
 
-from data import load_events, load_orders
-from segments import purchase_summary, visit_summary, build_features, scale, train_kmeans, summarize
+from dm_course_backend.data import load_events, load_orders
+from dm_course_backend.segments import purchase_summary, visit_summary, build_features, scale, train_kmeans, summarize
 import pandas as pd
 
 events, orders = load_events(), load_orders()
