@@ -20,7 +20,7 @@ def train(model_type: str = "logistic_regression", window_days: int = 7):
         "n_train": len(train),
         "n_test": len(test),
         "base_rate": round(float(dataset[LABEL].mean())) ,# Is the relationship between our buyers and non buyers
-        "metrics": _metrics(test[LABEL], model.predict_proba(test[FEATURES])),
+        "metrics": _metrics(test[LABEL], model.predict(test[FEATURES])),
     }
 
     MODEL_DIR.mkdir(exist_ok=True)
@@ -34,6 +34,39 @@ def train(model_type: str = "logistic_regression", window_days: int = 7):
     )
 
     return meta
+
+def get_customer_probability(user_id: int) -> dict | None:
+    saved = load()
+
+    if saved is None:
+        return None
+
+    cutoff = pd.Timestamp(saved["meta"]["cutoff"])
+    events, orders = load_events(), load_orders() # Clickhouse, KV, NoSQL data
+    my_events = events[(events["user_id"]) == user_id & (events["timestamp"] < cutoff)]
+    my_orders = orders[(orders["user_id"]) == user_id & (orders["timestamp"] < cutoff)]
+
+    # Fallback mechanism
+    if my_events.empty and my_orders.empty:
+    
+        return {
+            "user_id": user_id,
+            "probability": saved["meta"]["base_rate"],
+            "fallback": True,
+            "reason": "no_history"
+        }
+
+
+    user_features = curstomer_features(my_events, my_orders, cutoff)
+    probability = predict_conversion_probaility(saved["model"], user_features)
+
+    return {
+        "user_id": user_id,
+        "probability": probability,
+        "fallback": False,
+        "reason": None
+    }
+
 
 def load() -> dict | None:
     return joblib.load(MODEL_DIR / "conversions.joblib") if (MODEL_DIR / "conversions.joblib").exists() else None

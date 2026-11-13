@@ -92,6 +92,7 @@ def train_covnversion_model(train: pd.DataFrame, model_type: str = "logistic_reg
 # Budged (SMS, EMAIL)
 
 # One mounth of marketing or prediction. Do some statistics and figure out if our predictions are correct
+# The missing baseline metrics 
 def _metrics(y_true, y_pred) -> dict:
     return {
         "accuracy": round(float(accuracy_score(y_true, y_pred)), 4),
