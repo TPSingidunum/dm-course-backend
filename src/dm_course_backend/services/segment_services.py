@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 import joblib
 
-from dm_course_backend.data import load_events, load_orders
-from dm_course_backend.segments import build_features, scale, summarize, train_kmeans
+from dm_course_backend.models.data import load_events, load_orders
+from dm_course_backend.models.segments import build_features, scale, summarize, train_kmeans
 
 MODEL_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).resolve().parents[0] / "model"))
 

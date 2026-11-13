@@ -22,7 +22,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from dm_course_backend.segments import build_features
+from dm_course_backend.models.segments import build_features
 
 import pandas as pd
 

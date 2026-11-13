@@ -1,6 +1,6 @@
 
-from dm_course_backend.conversion import build_training_dataset, split_dataset, train_covnversion_model, FEATURES, predict_conversion_probaility, LABEL
-from dm_course_backend.data import load_events, load_orders
+from dm_course_backend.models.conversion import build_training_dataset, split_dataset, train_covnversion_model, FEATURES, predict_conversion_probaility, LABEL
+from dm_course_backend.models.data import load_events, load_orders
 import pandas as pd
 
 events, orders = load_events(), load_orders() 

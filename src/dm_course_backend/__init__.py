@@ -3,8 +3,8 @@ from pydantic import BaseModel, Field
 from typing import Literal
 
 import uvicorn
-from dm_course_backend.segment_services import train, load
-from dm_course_backend.conversion_services import get_customer_probability, train as conversionTrain, load as conversionLoad
+from dm_course_backend.services.segment_services import train, load
+from dm_course_backend.services.conversion_services import get_customer_probability, train as conversionTrain, load as conversionLoad
 
 app = FastAPI(title="DM Backend")
 
