@@ -32,4 +32,4 @@ def train(k: int=4) -> dict:
     return summary
 
 def load() -> dict | None:
-    return joblib.load(MODEL_DIR/"weights.joblib") if (MODEL_DIR / "weights.joblib").exists() else None
+    return joblib.load(MODEL_DIR/"segments.joblib") if (MODEL_DIR / "segmenets.joblib").exists() else None

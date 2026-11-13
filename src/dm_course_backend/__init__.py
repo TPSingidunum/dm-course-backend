@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import uvicorn
-from dm_course_backend.services import train, load
+from dm_course_backend.segment_services import train, load
 
 app = FastAPI(title="DM Backend")
 
