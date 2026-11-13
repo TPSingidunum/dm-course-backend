@@ -43,8 +43,8 @@ def get_customer_probability(user_id: int) -> dict | None:
 
     cutoff = pd.Timestamp(saved["meta"]["cutoff"])
     events, orders = load_events(), load_orders() # Clickhouse, KV, NoSQL data
-    my_events = events[(events["user_id"]) == user_id & (events["timestamp"] < cutoff)]
-    my_orders = orders[(orders["user_id"]) == user_id & (orders["timestamp"] < cutoff)]
+    my_events = events[(events["user_id"] == user_id) & (events["timestamp"] < cutoff)]
+    my_orders = orders[(orders["user_id"] == user_id) & (orders["timestamp"] < cutoff)]
 
     # Fallback mechanism
     if my_events.empty and my_orders.empty:
