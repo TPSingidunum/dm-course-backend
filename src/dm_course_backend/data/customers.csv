@@ -1,4 +1,4 @@
-customer_id,segment,recency_days,frequency,monetary,expected_order_value,p_purchase_7d
+customer_id,segment,recency_days,frequency,monetary,expected_order_value,probability
 101,VIP,2,7,883.18,126.17,0.62
 102,Regular buyer,5,2,140.00,70.00,0.35
 103,Window shopper,1,0,0.00,40.00,0.08
