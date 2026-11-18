@@ -12,3 +12,11 @@ def load_events() -> pd.DataFrame:
 @lru_cache
 def load_orders() -> pd.DataFrame:
     return pd.read_csv(DATA_DIR / "orders.csv", parse_dates=["timestamp"])
+
+@lru_cache
+def load_customers() -> pd.DataFrame:
+    return pd.read_csv(DATA_DIR / "customers.csv")
+
+@lru_cache
+def load_campaigns() -> pd.DataFrame:
+    return pd.read_json(DATA_DIR / "campaigns.json")

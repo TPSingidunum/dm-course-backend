@@ -1,0 +1,11 @@
+[
+  {"id": 1, "name": "Spring e-mail coupon", "channel": "email",
+   "contact_cost": 0.40, "net_margin_rate": 0.30, "budget": 2.00, "max_contacts": 8,
+   "min_probability": 0.05, "window_days": 7, "rule_max_recency_days": 14, "rule_min_frequency": 1},
+  {"id": 2, "name": "SMS reminder", "channel": "sms",
+   "contact_cost": 2.50, "net_margin_rate": 0.30, "budget": 20.00, "max_contacts": 3,
+   "min_probability": 0.10, "window_days": 7, "rule_max_recency_days": 14, "rule_min_frequency": 1},
+  {"id": 3, "name": "Paused postcard", "channel": "post",
+   "contact_cost": 1.20, "net_margin_rate": 0.30, "budget": 0.00, "max_contacts": 50,
+   "min_probability": 0.05, "window_days": 7, "rule_max_recency_days": 14, "rule_min_frequency": 1}
+]
