@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 from functools import lru_cache
 
-DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).resolve().parents[0] / "data"))
+DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).resolve().parents[1] / "data"))
 
 @lru_cache
 def load_events() -> pd.DataFrame:
@@ -15,6 +15,7 @@ def load_orders() -> pd.DataFrame:
 
 @lru_cache
 def load_customers() -> pd.DataFrame:
+    print(DATA_DIR / "customers.csv")
     return pd.read_csv(DATA_DIR / "customers.csv")
 
 @lru_cache
