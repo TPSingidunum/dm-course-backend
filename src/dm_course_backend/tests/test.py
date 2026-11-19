@@ -31,8 +31,8 @@ result = summarize(features, model.labels_)
 df = pd.DataFrame(result)
 print(df)
 
-# Base on user Clasification
-# Segment 1 is our Windows Shoppers
-# Segment 0 is our Drfiting aways
+# Based on user classification
+# Segment 1 is our Window Shoppers
+# Segment 0 is our Drifting away
 # Segment 3 is our Regular Buyers 
 # Segment 2 is our VIPs 

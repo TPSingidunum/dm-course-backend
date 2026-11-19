@@ -4,7 +4,7 @@ from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
 # Segments - each segment represents a user group
-# Rich customers, WindowShoppers, etc.  
+# Rich customers, Window shoppers, etc.  
 
 # 1. Define what our features will be
 # Recency - how long since last purchase
@@ -35,7 +35,7 @@ def visit_summary(events: pd.DataFrame) -> pd.DataFrame:
 
 def build_features(events: pd.DataFrame, orders: pd.DataFrame, now) -> pd.DataFrame:
     df = visit_summary(events).join(purchase_summary(orders), how="outer")
-    df = df.fillna({"frequency": 0, "monetary": 0, "bying_sessions": 0})
+    df = df.fillna({"frequency": 0, "monetary": 0, "buying_sessions": 0})
     last_activity = df["last_purchase"].fillna(df["last_seen"])
     df["recency_days"] = (now - last_activity).dt.days
     df["monetary"] = df["monetary"].round(2)
@@ -56,10 +56,10 @@ def train_kmeans(X, k: int = 4):
     score = silhouette_score(X, model.labels_)
     return model, round(float(score), 4)
 
-# 4. Label each group by their defining caracteristic
+# 4. Label each group by their defining characteristic
 
 def summarize(features: pd.DataFrame, labels) -> list[dict]:
-    df = features.assign(segment=[ f"label{label}" for label in labels])
+    df = features.assign(segment=[ f"segment_{label}" for label in labels])
     table = df.groupby("segment")[FEATURES].mean().round(4)
     table.insert(0, "count", df["segment"].value_counts())
     table.insert(1, "share", (table["count"] / len(df)).round(4))

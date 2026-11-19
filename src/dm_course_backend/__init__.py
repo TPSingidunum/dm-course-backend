@@ -51,7 +51,7 @@ def train_segments(body: TrainRequest = TrainRequest()):
 def get_segments():
     saved_weights = load()
     if saved_weights is None:
-        raise HTTPException(503, "untrained_model") # Error Codes, HTTP 402 Bad Request, ErrorCode 102 # 1 is Kmeans error, and 2 is not trianed
+        raise HTTPException(503, "untrained_model") # Error Codes, HTTP 400 Bad Request, ErrorCode 102 # 1 is Kmeans error, and 2 is not trained
     return saved_weights["summary"]
 
 @app.get("/customers/{user_id}/segment")

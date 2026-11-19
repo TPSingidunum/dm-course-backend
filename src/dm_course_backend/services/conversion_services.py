@@ -12,14 +12,14 @@ def train(model_type: str = "logistic_regression", window_days: int = 7):
     events, orders = load_events(), load_orders() 
     dataset = build_training_dataset(events, orders, window_days)
     train, test = split_dataset(dataset)
-    model = train_covnversion_model(train, model_type)
+    model = train_conversion_model(train, model_type)
 
     meta = {
         "model_type": model_type,
         "cutoff": str(time_cutoff(events, orders, window_days)),
         "n_train": len(train),
         "n_test": len(test),
-        "base_rate": round(float(dataset[LABEL].mean())) ,# Is the relationship between our buyers and non buyers
+        "base_rate": round(float(dataset[LABEL].mean()), 4) ,# Is the relationship between our buyers and non buyers
         "metrics": _metrics(test[LABEL], model.predict(test[FEATURES])),
     }
 
@@ -57,8 +57,8 @@ def get_customer_probability(user_id: int) -> dict | None:
         }
 
 
-    user_features = curstomer_features(my_events, my_orders, cutoff)
-    probability = predict_conversion_probaility(saved["model"], user_features)
+    user_features = customer_features(my_events, my_orders, cutoff)
+    probability = predict_conversion_probability(saved["model"], user_features)
 
     return {
         "user_id": user_id,

@@ -27,9 +27,9 @@ def train(k: int=4) -> dict:
 
     assignments = {int(uid): f"segment_{label}" for uid, label in zip(features.index, model.labels_)}
     MODEL_DIR.mkdir(exist_ok=True)
-    joblib.dump({"model": model, "scaler": scaler, "summary": summary, "assignments": assignments}, MODEL_DIR / "weights.joblib" )
+    joblib.dump({"model": model, "scaler": scaler, "summary": summary, "assignments": assignments}, MODEL_DIR / "segments.joblib" )
     print(summary)
     return summary
 
 def load() -> dict | None:
-    return joblib.load(MODEL_DIR/"segments.joblib") if (MODEL_DIR / "segmenets.joblib").exists() else None
+    return joblib.load(MODEL_DIR/"segments.joblib") if (MODEL_DIR / "segments.joblib").exists() else None

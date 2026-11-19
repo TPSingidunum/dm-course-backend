@@ -11,7 +11,7 @@
 # (100 - 50)*0.8 * sales_tax => Profit margin of 30%
 
 #  Select section => choose users which we will contact
-#  Limit => Take the budged into consideration
+#  Limit => Take the budget into consideration
 
 #  0.2 * 15$ -1.2 = 3 - 0.2 = 2.8 # Window shoppers you have 100 users
 

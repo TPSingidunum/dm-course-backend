@@ -1,8 +1,8 @@
 # Digital Marketing cost money
 # Both Ads and Recommendations cost money
-# Grade our campaign success based of user predicted buyouts vs real case scenarios
+# Grade our campaign success based on user predicted buyouts vs real case scenarios
 
-# Budged of 10 000 eur
+# Budget of 10 000 eur
 # SMS 0.4 EUR
 # EMAIL 0.1 EUR 
 # Flyers 0.5 eur
@@ -12,7 +12,7 @@
 # Coupons 5 eur
 # etc. 1000
 
-# For what segment of users do you run you campaings
+# For what segment of users do you run your campaigns
 
 # VIP
 
@@ -21,9 +21,9 @@
 # Coupons 5 eur
 
 # AOV = 200 eur
-# Separete 200$ in budged to recomend for VIP user
+# Separate 200$ in budget to recommend for VIP user
 
-# Windows shoppers
+# Window shoppers
 
 # EMAIL 0.1 EUR 
 # Flyers 0.5 eur
@@ -32,7 +32,7 @@
 
 # AOV = 15$ 
 
-# Drift Away custommers
+# Drift Away customers
 
 # EMAIL 0.1 EUR 
 # Flyers 0.5 eur
