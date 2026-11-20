@@ -4,6 +4,7 @@ from typing import Literal
 
 import uvicorn
 from dm_course_backend.services.segment_services import train, load
+from dm_course_backend.services.campaign_service import build_audience, load as load_campaings, get_campaign
 from dm_course_backend.services.conversion_services import get_customer_probability, train as conversionTrain, load as conversionLoad
 
 app = FastAPI(title="DM Backend")
@@ -13,6 +14,8 @@ def health():
     return {
         "health": "ok"
     }
+
+# Conversion Section
 
 class ConversionTrainRequest(BaseModel):
     model_type: Literal["logistic_regression", "random_forest"] = "logistic_regression"
@@ -40,6 +43,10 @@ def get_user_conversion_probability(user_id: int):
 
     return result
 
+# Conversion Section
+
+# Segmentaion Section
+
 class TrainRequest(BaseModel):
     k: int = Field(4, ge=2, le=10)
 
@@ -63,6 +70,52 @@ def get_customer_segment(user_id: int):
         "user_id": user_id,
         "segment": saved_weights["assignments"].get(user_id, "unsegmented")
     } 
+
+# Segmentaion Section
+
+# Campaign Section
+
+class AudienceRow(BaseModel):
+    rank: int
+    customer_id: int
+    segment: str
+    probability: float | None
+    value: float # what is the profit margin, or sales revenu
+    expected_value: float # final profit (value - TCO)
+    score: float
+
+class AudienceResponse(BaseModel):
+    rank: int
+    customer_id: int
+    segment: str
+    probability: float | None
+    value: float # what is the profit margin, or sales revenu
+    expected_value: float # final profit (value - TCO)
+    score: float
+
+
+@app.get("/campaigns")
+def get_campaigns():
+    campaigns = load_campaings()
+    print(campaigns)
+    if campaigns is None:
+        raise HTTPException(503, "No campaigns") # Error Codes, HTTP 400 Bad Request, ErrorCode 102 # 1 is Kmeans error, and 2 is not trained
+    return campaigns.to_dict(orient='records');
+
+@app.get("/campaigns/{campaing_id}/recommended-audience")
+def recommended_audiences(campaign_id: int, mode: Literal["ml", "rule"] = "ml"):
+    campaign = get_campaign(campaign_id)
+    # ml mode is the score_customers
+    score_customers, rule_customers, excluded = build_audience(campaign)
+
+    return {
+
+    }
+
+
+# Campaign Section
+
+
 
 def main() -> None:
     uvicorn.run(
