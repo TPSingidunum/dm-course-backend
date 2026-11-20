@@ -1,0 +1,46 @@
+[
+  {
+    "id": 1,
+    "type": "User Based",
+    "total_split": 0.25,
+    "base_modifier": 1.5,
+    "feature_modifier": [
+        {
+            "name": "product_view",
+            "modifier": 2.0
+        },
+        {
+            "name": "category_view",
+            "modifier": 1.2
+        }
+    ]
+  },
+  {
+    "id": 2,
+    "type": "Sponsor Based",
+    "total_split": 0.15,
+    "base_modifier": 2.0
+  },
+  {
+    "id": 3,
+    "type": "Affiliate Based",
+    "total_split": 0.10,
+    "base_modifier": 1.5
+  },
+  {
+    "id": 4,
+    "type": "Segment Based",
+    "total_split": 0.20,
+    "base_modifier": 1.25,
+    "feature_modifier": [
+        {
+            "name": "product_view",
+            "modifier": 2.0
+        },
+        {
+            "name": "category_view",
+            "modifier": 1.2
+        }
+    ]
+  }
+]
