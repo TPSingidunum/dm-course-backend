@@ -5,6 +5,7 @@ from typing import Literal
 import uvicorn
 from dm_course_backend.services.segment_services import train, load
 from dm_course_backend.services.campaign_service import build_audience, load as load_campaings, get_campaign
+from dm_course_backend.models.targeting import compare_customers
 from dm_course_backend.services.conversion_services import get_customer_probability, train as conversionTrain, load as conversionLoad
 
 app = FastAPI(title="DM Backend")
@@ -102,15 +103,17 @@ def get_campaigns():
         raise HTTPException(503, "No campaigns") # Error Codes, HTTP 400 Bad Request, ErrorCode 102 # 1 is Kmeans error, and 2 is not trained
     return campaigns.to_dict(orient='records');
 
-@app.get("/campaigns/{campaing_id}/recommended-audience")
+@app.get("/campaigns/{campaign_id}/recommended-audience")
 def recommended_audiences(campaign_id: int, mode: Literal["ml", "rule"] = "ml"):
     campaign = get_campaign(campaign_id)
     # ml mode is the score_customers
     score_customers, rule_customers, excluded = build_audience(campaign)
-
-    return {
-
-    }
+    result = compare_customers(score_customers, rule_customers, campaign)
+    for side in ("score", "rule"):
+        result[side]["totals"] = {k: (v.item() if hasattr(v, "item") else v) for k, v in result[side]["totals"].items()}
+    result["excluded"] = excluded
+    result["mode"] = mode
+    return result
 
 
 # Campaign Section

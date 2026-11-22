@@ -39,7 +39,7 @@ def score_target_customers(eligible: pd.DataFrame, limit: int) -> pd.DataFrame:
 # Rule based mareking segmentation, A Marketing domain information that can't always be expressed into a number form
 def rule_target_customers(scored: pd.DataFrame, campaign, limit: int):
     matching = scored[(scored["frequency"] >= campaign["rule_min_frequency"]) & (scored["recency_days"] < campaign["rule_max_recency_days"])]
-    ordered = matching.sort_values(["recency_days", "customer_id"], ascending=[False, True]).head(limit)
+    ordered = matching.sort_values(["recency_days", "customer_id"], ascending=[True, True]).head(limit)
     return ordered.assign(rank=range(1, len(ordered) + 1))
 
 # Audience is a cross section of overlaping user in all different groups of potential customers

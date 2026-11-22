@@ -9,15 +9,16 @@ def load():
 
 def get_campaign(campaign_id):
     campaigns = load()
+    match = campaigns[campaigns["id"] == campaign_id]
 
-    if campaign_id not in campaigns:
+    if match.empty:
         raise HTTPException(400, "Campaign does not exist")
 
-    return campaigns[campaign_id]
+    return match.iloc[0]
 
 def build_audience(campaign):
     customers = load_customers()
-    score = [score_customer(customer, campaign) for customer in customers ]
+    score = score_customer(customers, campaign)
     a_limit = audience_limit(campaign)
     eligible, excluded = select_target_customer(score, campaign)
     score_customers = score_target_customers(eligible, a_limit)
