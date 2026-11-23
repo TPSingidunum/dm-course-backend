@@ -4,8 +4,8 @@ from typing import Literal
 
 import uvicorn
 from dm_course_backend.services.segment_services import train, load
-from dm_course_backend.services.campaign_service import build_audience, load as load_campaings, get_campaign
-from dm_course_backend.models.targeting import compare_customers
+from dm_course_backend.services.campaign_service import build_audience, get_audience_totals, load as load_campaigns, get_campaign, rounded
+from dm_course_backend.models.targeting import audience_limit, compare_customers
 from dm_course_backend.services.conversion_services import get_customer_probability, train as conversionTrain, load as conversionLoad
 
 app = FastAPI(title="DM Backend")
@@ -76,6 +76,19 @@ def get_customer_segment(user_id: int):
 
 # Campaign Section
 
+class Campaign(BaseModel):
+    id: int
+    name: str
+    channel: str
+    contact_cost: float
+    net_margin: float
+    budget: float
+    max_contacts: int
+    min_probability: float
+    window_days: int
+    rule_max_recency_days: int
+    rule_max_frequency: int
+
 class AudienceRow(BaseModel):
     rank: int
     customer_id: int
@@ -85,35 +98,59 @@ class AudienceRow(BaseModel):
     expected_value: float # final profit (value - TCO)
     score: float
 
-class AudienceResponse(BaseModel):
-    rank: int
-    customer_id: int
-    segment: str
-    probability: float | None
-    value: float # what is the profit margin, or sales revenu
-    expected_value: float # final profit (value - TCO)
-    score: float
+class Totals(BaseModel):
+    contacts: int
+    cost: float
+    expected_purchases: float
+    expected_profit: float
+    expected_net_value: float
+    unscored: int
 
+class AudienceResponse(BaseModel):
+    campaign_id: int
+    mode: Literal["ml", "rule"]
+    limit_aplied: int
+    audience: list[AudienceRow]
+    totals: Totals
+    excluded: dict[str, int] | None
 
 @app.get("/campaigns")
 def get_campaigns():
-    campaigns = load_campaings()
-    print(campaigns)
+    campaigns = load_campaigns()
     if campaigns is None:
         raise HTTPException(503, "No campaigns") # Error Codes, HTTP 400 Bad Request, ErrorCode 102 # 1 is Kmeans error, and 2 is not trained
     return campaigns.to_dict(orient='records');
 
 @app.get("/campaigns/{campaign_id}/recommended-audience")
-def recommended_audiences(campaign_id: int, mode: Literal["ml", "rule"] = "ml"):
+def recommended_audiences(campaign_id: int, mode: Literal["ml", "rule"] = "ml", limit: int | None = None):
     campaign = get_campaign(campaign_id)
+    applied_limit = audience_limit(campaign) if limit is None else min(limit, audience_limit(campaign)) 
     # ml mode is the score_customers
     score_customers, rule_customers, excluded = build_audience(campaign)
+
+    # Returns results depending on the mode selected
+    audience = score_customers if mode == "ml" else rule_customers
+    totals =  {k: (v.item() if hasattr(v, "item") else v) for k, v in get_audience_totals(audience, campaign).items()}
+    
+    return {
+        "campaign_id": campaign_id,
+        "mode": mode,
+        "limit_aplied": applied_limit,
+        "audience": rounded(audience),
+        "totals": totals,
+        "excluded": excluded
+    }
+
+@app.get("/campaigns/{campaign_id}/targeting-comparison")
+def targeting_comparison(campaign_id: int):
+    campaign = get_campaign(campaign_id)
+    score_customers, rule_customers, excluded = build_audience(campaign)
+
     result = compare_customers(score_customers, rule_customers, campaign)
-    for side in ("score", "rule"):
-        result[side]["totals"] = {k: (v.item() if hasattr(v, "item") else v) for k, v in result[side]["totals"].items()}
-    result["excluded"] = excluded
-    result["mode"] = mode
+    for mode in ["score", "rule"]:
+        result[mode]["audience"] = {k: (v.item() if hasattr(v, "item") else v) for k, v in result[mode]["totals"].items()}
     return result
+
 
 
 # Campaign Section

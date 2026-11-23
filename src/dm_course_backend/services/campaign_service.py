@@ -25,3 +25,14 @@ def build_audience(campaign):
     rule_customers = rule_target_customers(score, campaign, a_limit)
 
     return score_customers, rule_customers, excluded
+
+def get_audience_totals(audience: pd.DataFrame, campaign) -> dict:
+    return audience_totals(audience, campaign)
+
+def rounded(audience: pd.DataFrame) -> list[dict]:
+    rows = audience[["rank", "customer_id", "segment", "probability", "value", "expected_value", "score"]].to_dict("records")
+    for row in rows:
+        for key in ["value", "expected_value", "score"]:
+            row[key] = None if pd.isna(row[key]) else round(float(row[key]), 2)
+        row["probability"] = None if pd.isna(row["probability"]) else float(row["probability"])
+    return rows
