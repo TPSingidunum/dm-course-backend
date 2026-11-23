@@ -21,3 +21,11 @@ def load_customers() -> pd.DataFrame:
 @lru_cache
 def load_campaigns() -> pd.DataFrame:
     return pd.read_json(DATA_DIR / "campaigns.json")
+
+@lru_cache
+def load_products() -> pd.DataFrame:
+    products = pd.read_csv(DATA_DIR / "products.csv")
+    categories = pd.read_csv(DATA_DIR / "categories.csv").rename(
+        columns={"name": "category_name", "slug": "category_slug"}
+    )
+    return products.merge(categories[["category_id", "category_name"]], on="category_id", how="left")

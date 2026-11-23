@@ -156,8 +156,6 @@ def targeting_comparison(campaign_id: int, limit: int | None = None):
     result.update(campaign_id=campaign_id, limit_applied=applied_limit, note=NOTE)
     return result
 
-
-
 # Campaign Section
 
 
