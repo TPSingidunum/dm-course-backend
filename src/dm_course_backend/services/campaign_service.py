@@ -16,10 +16,12 @@ def get_campaign(campaign_id):
 
     return match.iloc[0]
 
-def build_audience(campaign):
+def build_audience(campaign, limit: int | None = None):
     customers = load_customers()
     score = score_customer(customers, campaign)
     a_limit = audience_limit(campaign)
+    if limit is not None:
+        a_limit = min(a_limit, limit)
     eligible, excluded = select_target_customer(score, campaign)
     score_customers = score_target_customers(eligible, a_limit)
     rule_customers = rule_target_customers(score, campaign, a_limit)

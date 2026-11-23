@@ -76,18 +76,21 @@ def get_customer_segment(user_id: int):
 
 # Campaign Section
 
+NOTE = ("Model-based expectations on illustrative data, same 7-day window as the probabilities. "
+        "Not measured conversion lift and not incremental profit: that needs a randomized holdout.")
+
 class Campaign(BaseModel):
     id: int
     name: str
     channel: str
     contact_cost: float
-    net_margin: float
+    net_margin_rate: float
     budget: float
     max_contacts: int
     min_probability: float
     window_days: int
     rule_max_recency_days: int
-    rule_max_frequency: int
+    rule_min_frequency: int
 
 class AudienceRow(BaseModel):
     rank: int
@@ -95,8 +98,8 @@ class AudienceRow(BaseModel):
     segment: str
     probability: float | None
     value: float # what is the profit margin, or sales revenu
-    expected_value: float # final profit (value - TCO)
-    score: float
+    expected_value: float | None # final profit (value - TCO)
+    score: float | None
 
 class Totals(BaseModel):
     contacts: int
@@ -109,24 +112,24 @@ class Totals(BaseModel):
 class AudienceResponse(BaseModel):
     campaign_id: int
     mode: Literal["ml", "rule"]
-    limit_aplied: int
+    limit_applied: int
     audience: list[AudienceRow]
     totals: Totals
     excluded: dict[str, int] | None
 
-@app.get("/campaigns")
+@app.get("/campaigns", response_model=list[Campaign])
 def get_campaigns():
     campaigns = load_campaigns()
-    if campaigns is None:
+    if campaigns.empty:
         raise HTTPException(503, "No campaigns") # Error Codes, HTTP 400 Bad Request, ErrorCode 102 # 1 is Kmeans error, and 2 is not trained
     return campaigns.to_dict(orient='records');
 
-@app.get("/campaigns/{campaign_id}/recommended-audience")
+@app.get("/campaigns/{campaign_id}/recommended-audience", response_model=AudienceResponse)
 def recommended_audiences(campaign_id: int, mode: Literal["ml", "rule"] = "ml", limit: int | None = None):
     campaign = get_campaign(campaign_id)
     applied_limit = audience_limit(campaign) if limit is None else min(limit, audience_limit(campaign)) 
     # ml mode is the score_customers
-    score_customers, rule_customers, excluded = build_audience(campaign)
+    score_customers, rule_customers, excluded = build_audience(campaign, limit)
 
     # Returns results depending on the mode selected
     audience = score_customers if mode == "ml" else rule_customers
@@ -135,20 +138,22 @@ def recommended_audiences(campaign_id: int, mode: Literal["ml", "rule"] = "ml", 
     return {
         "campaign_id": campaign_id,
         "mode": mode,
-        "limit_aplied": applied_limit,
+        "limit_applied": applied_limit,
         "audience": rounded(audience),
         "totals": totals,
-        "excluded": excluded
+        "excluded": excluded if mode == "ml" else None
     }
 
 @app.get("/campaigns/{campaign_id}/targeting-comparison")
-def targeting_comparison(campaign_id: int):
+def targeting_comparison(campaign_id: int, limit: int | None = None):
     campaign = get_campaign(campaign_id)
-    score_customers, rule_customers, excluded = build_audience(campaign)
+    applied_limit = audience_limit(campaign) if limit is None else min(limit, audience_limit(campaign))
+    score_customers, rule_customers, excluded = build_audience(campaign, limit)
 
     result = compare_customers(score_customers, rule_customers, campaign)
     for mode in ["score", "rule"]:
-        result[mode]["audience"] = {k: (v.item() if hasattr(v, "item") else v) for k, v in result[mode]["totals"].items()}
+        result[mode]["totals"] = {k: (v.item() if hasattr(v, "item") else v) for k, v in result[mode]["totals"].items()}
+    result.update(campaign_id=campaign_id, limit_applied=applied_limit, note=NOTE)
     return result
 
 
