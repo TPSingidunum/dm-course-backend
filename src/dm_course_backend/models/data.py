@@ -29,3 +29,11 @@ def load_products() -> pd.DataFrame:
         columns={"name": "category_name", "slug": "category_slug"}
     )
     return products.merge(categories[["category_id", "category_name"]], on="category_id", how="left")
+
+@lru_cache
+def load_sponsors() -> pd.DataFrame:
+    return pd.read_json(DATA_DIR / "sponsors.json")
+
+@lru_cache
+def load_affiliates() -> pd.DataFrame:
+    return pd.read_json(DATA_DIR / "affiliates.json")

@@ -59,8 +59,6 @@ def recommend_same_category(products: pd.DataFrame, events: pd.DataFrame, produc
     columns = ["product_id", "score", "name", "description", "category_id", "price", "img_url"]
     return df[columns].reset_index(drop=True)
 
-
-
 def prepare_product_text(products: pd.DataFrame) -> pd.Series:
     parts = products["name"].fillna("").astype(str) + " " + products["description"].fillna("").astype(str)
     if "category_name" in products.columns:
@@ -81,7 +79,6 @@ def build_tfidf_matrix(products: pd.DataFrame, text_column: str = "product_text"
 
 def calculate_product_similarity(tfidf_matrix, item_id: int) -> pd.Series:
     return cosine_similarity(tfidf_matrix[item_id:item_id + 1], tfidf_matrix).flatten()
-
 
 # Product simmularity
 # Type 1 is by atribute values
@@ -112,3 +109,26 @@ def recommend_similar(products: pd.DataFrame, product_id: int, tfidf_matrix, eve
     return df[columns].reset_index(drop=True)
 
 # The final mix of paid / organic recommendations will be done in the recommendation.py file, where we will combine the results of the different recommendation methods and apply the modifiers for sponsored and affiliate products.
+def calculate_weights_by_rules(rules: pd.Series, base_weighst=None):
+    weights = dict(POPULARITY_WEIGHTS or base_weighst)
+    features = rules["feature_modifier"] if "feature_modifier" in rules.index else None
+    
+    # Appling the feature modifiers for existing features
+    if isinstance(features, list):
+        for item in features:
+            name = item["name"]
+            weights[name] = weights.get(name, 1.0) * float(item("modifier"))
+
+    base = float(rules["base_modifier"]) if pd.notna(rules.get("base_modifier")) else 1.0
+
+    return {
+        name: round(value * base, 10) for name, value in weights.items()
+    }
+
+
+# Combine populariy, rule weights, and nature recommnetsions 
+# Score per rule type
+# def score_products():
+
+# def mix_recommendatiosn():
+    
