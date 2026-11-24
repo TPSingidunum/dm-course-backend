@@ -30,9 +30,9 @@ def popularity_from_events(events: pd.DataFrame, weights=None) -> pd.Series:
 
 # Part of our natural recommendation system, we need to recommend the most popular products to the user
 def recommend_popular_products(products: pd.DataFrame, events: pd.DataFrame, limit=10, exclude: None = None) -> pd.DataFrame:
-    pop = popularity_from_events(events) if not pop.empty else None
+    pop = popularity_from_events(events)
     df = products.copy()
-    df["score"] = df["product_id"].map(pop).fillna(0.0)
+    df["score"] = df["product_id"].map(pop).fillna(0.0) if not pop.empty else 0.0
 
     # If these were natural recomendations, do not put sponsored or affiliate products in the list, as they are not natural recommendations
     if exclude is not None:
@@ -40,11 +40,13 @@ def recommend_popular_products(products: pd.DataFrame, events: pd.DataFrame, lim
 
     df = df.sort_values(["score", "product_id"], ascending=[False, True]).head(limit)
 
-    columns = ["product_id", "score", "name", "description", "category_id", "price", "img_url"]
+    columns = ["product_id", "slug", "score", "name", "description", "category_id", "price", "img_url"]
     return df[columns].reset_index(drop=True)
 
 def recommend_same_category(products: pd.DataFrame, events: pd.DataFrame, product_id: int, limit=10, exclude: None = None) -> pd.DataFrame:
     extacted = products[products["product_id"] == product_id]
+    if extacted.empty:
+        raise ValueError(f"Unknown product {product_id}")
     category_id = extacted.iloc[0]["category_id"]
 
     df = products[(products["category_id"] == category_id) & (products["product_id"] != product_id)].copy()
@@ -52,11 +54,11 @@ def recommend_same_category(products: pd.DataFrame, events: pd.DataFrame, produc
     if exclude is not None:
         df = df[~df["product_id"].isin(exclude)]
 
-    pop = popularity_from_events(events) if not pop.empty else None
-    df["score"] = df["product_id"].map(pop).fillna(0.0)
+    pop = popularity_from_events(events)
+    df["score"] = df["product_id"].map(pop).fillna(0.0) if not pop.empty else 0.0
     df = df.sort_values(["score", "product_id"], ascending=[False, True]).head(limit)
     
-    columns = ["product_id", "score", "name", "description", "category_id", "price", "img_url"]
+    columns = ["product_id", "slug", "score", "name", "description", "category_id", "price", "img_url"]
     return df[columns].reset_index(drop=True)
 
 def prepare_product_text(products: pd.DataFrame) -> pd.Series:
@@ -64,10 +66,10 @@ def prepare_product_text(products: pd.DataFrame) -> pd.Series:
     if "category_name" in products.columns:
         parts = parts + " " + products["category_name"].fillna("").astype(str)
 
-    return pd.Series(parts.str.strip(), index=products["product_id"].astype(int), name="product_text").str.lower()
+    return pd.Series(parts.str.strip().to_numpy(), index=products["product_id"].astype(int), name="product_text").str.lower()
 
 def build_tfidf_matrix(products: pd.DataFrame, text_column: str = "product_text",
-                       stop_words: str = "English", ngram_range: tuple[int, int] = (1, 2),
+                       stop_words: str = "english", ngram_range: tuple[int, int] = (1, 2),
                        min_df: int = 2
                        ):
     texts = products[text_column] if text_column in products.columns else prepare_product_text(products)
@@ -103,21 +105,23 @@ def recommend_similar(products: pd.DataFrame, product_id: int, tfidf_matrix, eve
     df = products.copy()
     df["score"] = np.round(similarities, 4)
     df = df[df["product_id"] != product_id]
+    if exclude is not None:
+        df = df[~df["product_id"].isin(exclude)]
     df = df.sort_values(["score", "product_id"], ascending=[False, True]).head(limit)
 
-    columns = ["product_id", "score", "name", "description", "category_id", "price", "img_url"]
+    columns = ["product_id", "slug", "score", "name", "description", "category_id", "price", "img_url"]
     return df[columns].reset_index(drop=True)
 
 # The final mix of paid / organic recommendations will be done in the recommendation.py file, where we will combine the results of the different recommendation methods and apply the modifiers for sponsored and affiliate products.
 def calculate_weights_by_rules(rules: pd.Series, base_weighst=None):
-    weights = dict(POPULARITY_WEIGHTS or base_weighst)
+    weights = dict(base_weighst or POPULARITY_WEIGHTS)
     features = rules["feature_modifier"] if "feature_modifier" in rules.index else None
     
     # Appling the feature modifiers for existing features
     if isinstance(features, list):
         for item in features:
             name = item["name"]
-            weights[name] = weights.get(name, 1.0) * float(item("modifier"))
+            weights[name] = weights.get(name, 1.0) * float(item["modifier"])
 
     base = float(rules["base_modifier"]) if pd.notna(rules.get("base_modifier")) else 1.0
 

@@ -32,8 +32,8 @@ def load_products() -> pd.DataFrame:
 
 @lru_cache
 def load_sponsors() -> pd.DataFrame:
-    return pd.read_json(DATA_DIR / "sponsors.json")
+    return pd.read_csv(DATA_DIR / "sponsors.csv")
 
 @lru_cache
 def load_affiliates() -> pd.DataFrame:
-    return pd.read_json(DATA_DIR / "affiliates.json")
+    return pd.read_csv(DATA_DIR / "affiliates.csv")
