@@ -37,3 +37,7 @@ def load_sponsors() -> pd.DataFrame:
 @lru_cache
 def load_affiliates() -> pd.DataFrame:
     return pd.read_csv(DATA_DIR / "affiliates.csv")
+
+@lru_cache
+def load_recommendation_config() -> pd.DataFrame:
+    return pd.read_json(DATA_DIR / "recommendation.json")

@@ -1,5 +1,6 @@
 # Product popularity
 
+import math
 import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -13,9 +14,9 @@ from dm_course_backend.models.data import load_events
 # purchase = 5
 
 POPULARITY_WEIGHTS = {
-    "product_view": 1,
-    "add_to_cart": 3,
-    "purchase": 5
+    "product_view": 1.0,
+    "add_to_cart": 3.0,
+    "purchase": 5.0
 }
 
 # Popularity vs recommendation score
@@ -79,7 +80,7 @@ def build_tfidf_matrix(products: pd.DataFrame, text_column: str = "product_text"
     tfidf_matrix = vec.fit_transform(list(texts.fillna("")))
     return tfidf_matrix, vec
 
-def calculate_product_similarity(tfidf_matrix, item_id: int) -> pd.Series:
+def calculate_product_similarity(tfidf_matrix, item_id: int):
     return cosine_similarity(tfidf_matrix[item_id:item_id + 1], tfidf_matrix).flatten()
 
 # Product simmularity
@@ -132,7 +133,53 @@ def calculate_weights_by_rules(rules: pd.Series, base_weighst=None):
 
 # Combine populariy, rule weights, and nature recommnetsions 
 # Score per rule type
-# def score_products():
+def score_products(product: pd.DataFrame, events: pd.DataFrame, weights: dict, user_ids = None):
+    ev = events if user_ids is None else events[events["user_id"].isin(list(user_ids))]
 
-# def mix_recommendatiosn():
+    pop = popularity_from_events(ev, weights)
+    out = product.copy()
+    out["score"] = out["product_id"].map(pop).fillna(0.0)
+    return out
+
+
+
+# Is shown on a product page
+def mix_recommendations(products: pd.DataFrame, events: pd.DataFrame, customers: pd.DataFrame,
+                        rule_config: pd.DataFrame, sponsors: pd.DataFrame, affiliates: pd.DataFrame,
+                        product_id: int, limit: int = 10, user_id: int | None = None):
+
+    cols = ["product_id", "slug", "score", "name", "description", "category_id", "price", "image_url", "source"]
+
+    rows = rule_config[["type", "total_split"]].copy()
+    rows["raw_limit"] = (rows["total_split"] * limit).round(10)
+    rows["slots"] = rows["raw_limit"].astype(int)
+    # Rule recommendations, leftover slots go to the natural recommendations
+    leftover = limit - int(rows["slots"].sum())
+
+
+    # Scoring for each split type their products and returning them to our list
+    slots = dict(zip(rows["type"], rows["slots"]))
+    exclued = {product_id} if product_id is not None else set()
+    # Parts or splits of product can overlap and i need ot keep an evidence list of used up product
+    parts, used_content = [], False
+    for id, row in rule_config.iterrows():
+        split_type, n, w = row["type"], int(slots.get(row["type"], 0)), calculate_weights_by_rules(row)
+        if n <= 0:
+            continue
+
+        scored = [] # product groups by split
+        if split_type == "User Based":
+            scored = score_products(products, events, w, [user_id])
+        elif split_type == "Sponsor Based":
+            scored = score_products(products[products["product_id"].isin(sponsors["product_id"])], events, w)
+        elif split_type == "Affiliate Based":
+            scored = score_products(products[products["product_id"].isin(affiliates["product_id"])], events, w)
+        elif split_type == "Segment Based":
+            print()
+
+
+
+
+
+
     
