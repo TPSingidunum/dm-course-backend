@@ -145,13 +145,17 @@ def score_products(product: pd.DataFrame, events: pd.DataFrame, weights: dict, u
 # Is shown on a product page
 def mix_recommendations(products: pd.DataFrame, events: pd.DataFrame, customers: pd.DataFrame, rule_config: pd.DataFrame, sponsors: pd.DataFrame, affiliates: pd.DataFrame, product_id: int, base_rec_content: pd.DataFrame, popular: pd.DataFrame, limit: int = 10, user_id: int | None = None):
 
-    cols = ["product_id", "slug", "score", "name", "description", "category_id", "price", "image_url", "source"]
+    cols = ["product_id", "slug", "score", "name", "description", "category_id", "price", "img_url", "source"]
 
     rows = rule_config[["type", "total_split"]].copy()
+    rows.loc[len(rows)] = ["Natural Traffic", max(0.0, 1.0 - float(rows["total_split"].sum()))]
     rows["raw_limit"] = (rows["total_split"] * limit).round(10)
     rows["slots"] = rows["raw_limit"].astype(int)
     # Rule recommendations, leftover slots go to the natural recommendations
     leftover = limit - int(rows["slots"].sum())
+    if leftover > 0:
+        rem = (rows["raw_limit"] - rows["slots"]).sort_values(ascending=False, kind="mergesort")
+        rows.loc[rem.index[:leftover], "slots"] += 1
 
     # Scoring for each split type their products and returning them to our list
     slots = dict(zip(rows["type"], rows["slots"]))
@@ -163,8 +167,8 @@ def mix_recommendations(products: pd.DataFrame, events: pd.DataFrame, customers:
         if n <= 0:
             continue
 
-        scored = [] # product groups by split
-        if split_type == "User Based":
+        scored = None # product groups by split
+        if split_type == "User Based" and user_id is not None:
             scored = score_products(products, events, w, [user_id])
         elif split_type == "Sponsor Based":
             scored = score_products(products[products["product_id"].isin(sponsors["product_id"])], events, w)
@@ -172,10 +176,10 @@ def mix_recommendations(products: pd.DataFrame, events: pd.DataFrame, customers:
             scored = score_products(products[products["product_id"].isin(affiliates["product_id"])], events, w)
         elif split_type == "Segment Based":
             user_ids = customers["customer_id"]
-            if user_ids is not None:
+            if user_id is not None:
                 hit = customers[customers["customer_id"] == user_id]
                 if not hit.empty:
-                    user_ids = customers.loc[customers["segment"] == hit.iloc[0]["segment"]]
+                    user_ids = customers.loc[customers["segment"] == hit.iloc[0]["segment"], "customer_id"]
             scored = score_products(products, events, w, user_ids)
 
         # Edgde case scenarion
@@ -192,8 +196,8 @@ def mix_recommendations(products: pd.DataFrame, events: pd.DataFrame, customers:
                 n -= len(picked)
                 # check it here and just add the rest of the products to be the natural recommendations
 
-        if split_type == "User Based" and n > 0:
-            picked = scored[~scored["product_id"].isin(excluded) & (scored["score"] > 0)].head(n).copy()
+        if split_type == "User Based" and n > 0 and base_rec_content is not None and not base_rec_content.empty:
+            picked = base_rec_content[~base_rec_content["product_id"].isin(excluded)].head(n).copy()
             if not picked.empty:
                 picked["source"] = split_type
                 parts.append(picked[cols])
@@ -202,28 +206,15 @@ def mix_recommendations(products: pd.DataFrame, events: pd.DataFrame, customers:
 
     # When we fill up the recommendation splits
     # Rest of the natural reccomendation
-    natural = popular if used_content or base_rec_content is None else base_rec_content
+    natural = popular if used_content or base_rec_content is None or base_rec_content.empty else base_rec_content
 
-    if leftover > 0:
-        picked = natural[~natural["product_id"].isin(excluded) & (natural["score"] > 0)].head(leftover).copy()
-        picked["source"] = "Natural Traffic"
-        if not picked.empty:
-            parts.append(picked[cols])
-            excluded.update(picked["product_id"].tolist())
+    for frame in (natural, popular):
+        left = limit - sum(len(p) for p in parts)
+        if left > 0 and frame is not None and not frame.empty:
+            picked = frame[~frame["product_id"].isin(excluded)].head(left).copy()
+            if not picked.empty:
+                picked["source"] = "Natural Traffic"
+                parts.append(picked[cols])
+                excluded.update(picked["product_id"].tolist())
 
-    return pd.concat(parts, ignore_index=True).head(limit) if parts else products.iloc[:].copy()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
+    return pd.concat(parts, ignore_index=True).head(limit) if parts else products.iloc[0:0].copy()

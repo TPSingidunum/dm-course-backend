@@ -7,6 +7,7 @@ from dm_course_backend.services.segment_services import train, load
 from dm_course_backend.services.campaign_service import build_audience, get_audience_totals, load as load_campaigns, get_campaign, rounded
 from dm_course_backend.models.targeting import audience_limit, compare_customers
 from dm_course_backend.services.conversion_services import get_customer_probability, train as conversionTrain, load as conversionLoad
+from dm_course_backend.services.recommendation_service import baseline_comparison, mixed_recommendations
 
 app = FastAPI(title="DM Backend")
 
@@ -159,6 +160,29 @@ def targeting_comparison(campaign_id: int, limit: int | None = None):
 # Campaign Section
 
 
+
+# Recommendation Section
+
+class RecommendationItem(BaseModel):
+    product_id: int
+    slug: str
+    score: float
+    name: str
+    description: str
+    category_id: int
+    price: float
+    img_url: str
+    source: str | None = None
+
+@app.get("/recommendations/{product_id}", response_model=list[RecommendationItem], response_model_exclude_none=True)
+def recommended_content(product_id: int, limit: int = 5, user_id: int | None = None):
+    return mixed_recommendations(product_id, limit=limit, user_id=user_id)
+
+@app.get("/recommendations/{product_id}/comparison")
+def recommended_content_comparison(product_id: int, limit: int = 5):
+    return baseline_comparison(product_id, limit=limit)
+
+# Recommendation Section
 
 def main() -> None:
     uvicorn.run(
