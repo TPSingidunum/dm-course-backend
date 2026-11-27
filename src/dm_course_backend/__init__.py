@@ -9,6 +9,10 @@ from dm_course_backend.models.targeting import audience_limit, compare_customers
 from dm_course_backend.services.conversion_services import get_customer_probability, train as conversionTrain, load as conversionLoad
 from dm_course_backend.services.recommendation_service import baseline_comparison, mixed_recommendations
 from dm_course_backend.services.seo_service import generate_seo, generate_product_seo
+from dm_course_backend.services.platform_service import (
+    collaborative_section, content_section, homepage, platform_modules, product_platform,
+    semantic_section, session_section, store_event, user_profile,
+)
 
 app = FastAPI(title="DM Backend")
 
@@ -217,6 +221,71 @@ def seo_for_product(product_id: int, body: SEOPromptRequest = SEOPromptRequest()
     return generate_product_seo(product_id, body.prompt)
 
 # SEO Section
+
+# Frontend Section (routes the new-look dm-course-frontend calls)
+
+class AiSeoRequest(BaseModel):
+    product_name: str = Field(min_length=3)
+    description: str = Field(min_length=10)
+    category_name: str | None = None
+
+class EventIn(BaseModel):
+    model_config = {"extra": "allow"}
+    event_type: str
+    user_id: int | None = None
+    user_session: str | None = None
+    product_id: int | None = None
+    category_id: int | None = None
+    recommendation_source: str | None = None
+    recommendation_position: int | None = None
+
+@app.get("/recommendations/content/{product_id}")
+def recommendations_content(product_id: int, limit: int = 5, user_id: int | None = None):
+    return content_section(product_id, limit, user_id)
+
+@app.get("/recommendations/collaborative/{product_id}")
+def recommendations_collaborative(product_id: int, limit: int = 5):
+    return collaborative_section(product_id, limit)
+
+@app.get("/recommendations/semantic/{product_id}")
+def recommendations_semantic(product_id: int, limit: int = 5):
+    return semantic_section(product_id, limit)
+
+@app.get("/recommendations/session/{session_id}")
+def recommendations_session(session_id: str, limit: int = 5):
+    return session_section(session_id, limit)
+
+@app.post("/events", status_code=201)
+def post_event(body: EventIn):
+    return store_event(body.model_dump())
+
+@app.post("/recommendations/events", status_code=201)
+def post_recommendation_event(body: EventIn):
+    return store_event(body.model_dump())
+
+@app.get("/platform/product/{product_id}")
+def platform_product(product_id: int):
+    return product_platform(product_id)
+
+@app.get("/platform/profile/{user_id}")
+def platform_profile(user_id: int):
+    return user_profile(user_id)
+
+@app.get("/platform/homepage")
+def platform_homepage(user_id: int, session_id: str | None = None, limit: int = 5):
+    return homepage(user_id, session_id, limit)
+
+@app.get("/platform/modules")
+def get_platform_modules():
+    return platform_modules()
+
+@app.post("/ai/seo")
+def ai_seo(body: AiSeoRequest):
+    seo = generate_seo({"title": body.product_name, "description": body.description, "category": body.category_name, "price": None})
+    return {"seo_title": seo["title"], "seo_description": seo["description"], "keywords": seo["keywords"],
+            "source": seo["model"], "fallback": seo["fallback"], "fallback_reason": "; ".join(seo["problems"]) or None}
+
+# Frontend Section
 
 def main() -> None:
     uvicorn.run(
