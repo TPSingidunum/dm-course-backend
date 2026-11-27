@@ -171,3 +171,17 @@ def platform_modules() -> dict:
     ]
     cols = ["day", "id", "name", "class", "available", "endpoint", "fallback"]
     return {"modules": [dict(zip(cols, r)) for r in rows]}
+
+
+# Search page: "semantic" search. No embeddings yet, so we match the query
+# against his TF-IDF product text (Day 5) and say it is a fallback.
+def search_products(q: str, limit: int = 10) -> dict:
+    from sklearn.metrics.pairwise import cosine_similarity
+    from dm_course_backend.models.recommendation import build_tfidf_matrix, prepare_product_text
+    products = load_products().copy()
+    products["product_text"] = products["product_id"].map(prepare_product_text(products))
+    matrix, vec = build_tfidf_matrix(products)
+    products["score"] = cosine_similarity(vec.transform([q.lower()]), matrix).flatten().round(4)
+    hits = products[products["score"] > 0].sort_values(["score", "product_id"], ascending=[False, True]).head(limit)
+    return {"query": q, "method": "tfidf", "embedder": None, "results": hits[COLUMNS].to_dict("records"),
+            "fallback": True, "fallback_reason": "no_embeddings_yet"}

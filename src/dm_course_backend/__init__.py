@@ -11,7 +11,11 @@ from dm_course_backend.services.recommendation_service import baseline_compariso
 from dm_course_backend.services.seo_service import generate_seo, generate_product_seo
 from dm_course_backend.services.platform_service import (
     collaborative_section, content_section, homepage, platform_modules, product_platform,
-    semantic_section, session_section, store_event, user_profile,
+    search_products, semantic_section, session_section, store_event, user_profile,
+)
+from dm_course_backend.services.campaign_service import audience_view, comparison_metrics
+from dm_course_backend.services.analytics_service import (
+    ctr_report, hybrid_evaluation, offline_evaluation, session_comparison, user_recommendations,
 )
 
 app = FastAPI(title="DM Backend")
@@ -106,6 +110,13 @@ class AudienceRow(BaseModel):
     value: float # what is the profit margin, or sales revenu
     expected_value: float | None # final profit (value - TCO)
     score: float | None
+    # extra fields for the frontend campaigns page
+    user_id: int | None = None
+    rfm_bucket: str | None = None
+    recency_days: int | None = None
+    frequency: int | None = None
+    monetary: float | None = None
+    reasons: list[str] | None = None
 
 class Totals(BaseModel):
     contacts: int
@@ -122,6 +133,13 @@ class AudienceResponse(BaseModel):
     audience: list[AudienceRow]
     totals: Totals
     excluded: dict[str, int] | None
+    # extra fields for the frontend campaigns page
+    campaign_name: str | None = None
+    total_candidates: int | None = None
+    selected: int | None = None
+    returned: int | None = None
+    fallback: bool = False
+    fallback_reason: str | None = None
 
 @app.get("/campaigns", response_model=list[Campaign])
 def get_campaigns():
@@ -141,7 +159,7 @@ def recommended_audiences(campaign_id: int, mode: Literal["ml", "rule"] = "ml", 
     audience = score_customers if mode == "ml" else rule_customers
     totals =  {k: (v.item() if hasattr(v, "item") else v) for k, v in get_audience_totals(audience, campaign).items()}
     
-    return {
+    response = {
         "campaign_id": campaign_id,
         "mode": mode,
         "limit_applied": applied_limit,
@@ -149,6 +167,8 @@ def recommended_audiences(campaign_id: int, mode: Literal["ml", "rule"] = "ml", 
         "totals": totals,
         "excluded": excluded if mode == "ml" else None
     }
+    response.update(audience_view(audience, response["audience"], campaign, mode, excluded))
+    return response
 
 @app.get("/campaigns/{campaign_id}/targeting-comparison")
 def targeting_comparison(campaign_id: int, limit: int | None = None):
@@ -160,6 +180,7 @@ def targeting_comparison(campaign_id: int, limit: int | None = None):
     for mode in ["score", "rule"]:
         result[mode]["totals"] = {k: (v.item() if hasattr(v, "item") else v) for k, v in result[mode]["totals"].items()}
     result.update(campaign_id=campaign_id, limit_applied=applied_limit, note=NOTE)
+    result["metrics"] = comparison_metrics(score_customers, rule_customers, campaign)  # rule vs ML summary for the frontend
     return result
 
 # Campaign Section
@@ -278,6 +299,30 @@ def platform_homepage(user_id: int, session_id: str | None = None, limit: int = 
 @app.get("/platform/modules")
 def get_platform_modules():
     return platform_modules()
+
+@app.get("/recommendations/user/{user_id}")
+def recommendations_for_user(user_id: int, limit: int = 10):
+    return user_recommendations(user_id, limit)
+
+@app.get("/search/semantic")
+def search_semantic(q: str = "", limit: int = 10):
+    return search_products(q, limit)
+
+@app.get("/analytics/recommendations")
+def analytics_recommendations():
+    return offline_evaluation()
+
+@app.get("/analytics/recommendations/ctr")
+def analytics_ctr():
+    return ctr_report()
+
+@app.get("/analytics/recommendations/session-comparison")
+def analytics_session_comparison():
+    return session_comparison()
+
+@app.get("/analytics/recommendations/hybrid")
+def analytics_hybrid():
+    return hybrid_evaluation()
 
 @app.post("/ai/seo")
 def ai_seo(body: AiSeoRequest):
