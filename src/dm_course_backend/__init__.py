@@ -8,6 +8,7 @@ from dm_course_backend.services.campaign_service import build_audience, get_audi
 from dm_course_backend.models.targeting import audience_limit, compare_customers
 from dm_course_backend.services.conversion_services import get_customer_probability, train as conversionTrain, load as conversionLoad
 from dm_course_backend.services.recommendation_service import baseline_comparison, mixed_recommendations
+from dm_course_backend.services.seo_service import generate_seo, generate_product_seo
 
 app = FastAPI(title="DM Backend")
 
@@ -183,6 +184,39 @@ def recommended_content_comparison(product_id: int, limit: int = 5):
     return baseline_comparison(product_id, limit=limit)
 
 # Recommendation Section
+
+# SEO Section (Day 7)
+
+class SEORequest(BaseModel):
+    title: str = Field(min_length=3)
+    description: str = Field(min_length=10)
+    category: str | None = None
+    price: float | None = None
+    prompt: str | None = None
+
+class SEOPromptRequest(BaseModel):
+    prompt: str | None = None
+
+class SEOResponse(BaseModel):
+    product_id: int | None = None
+    title: str
+    description: str
+    keywords: list[str]
+    product_description: str
+    model: str
+    attempts: int
+    fallback: bool
+    problems: list[str]
+
+@app.post("/seo/generate/product", response_model=SEOResponse, response_model_exclude_none=True)
+def seo_generate_product(body: SEORequest):
+    return generate_seo(body.model_dump(), body.prompt)
+
+@app.post("/seo/products/{product_id}", response_model=SEOResponse)
+def seo_for_product(product_id: int, body: SEOPromptRequest = SEOPromptRequest()):
+    return generate_product_seo(product_id, body.prompt)
+
+# SEO Section
 
 def main() -> None:
     uvicorn.run(

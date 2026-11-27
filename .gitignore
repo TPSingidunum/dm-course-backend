@@ -10,3 +10,5 @@ wheels/
 .venv
 
 src\dm_course_backend\model\*
+# Secrets (Day 7: OpenRouter key)
+.env
